@@ -22,12 +22,10 @@ class Portfolio:
     def __init__(self,
                  rebalancing_date: str = None,
                  weights: dict = None,
-                 name: str = None,
-                 init_weights: dict = None):
+                 name: str = None):
         self._rebalancing_date = rebalancing_date
         self._weights = weights if weights else {}
         self._name = name
-        self._init_weights = init_weights if init_weights else {}
 
     @staticmethod
     def empty() -> 'Portfolio':
@@ -82,27 +80,6 @@ class Portfolio:
         else:
             return None
 
-    def initial_weights(self,
-                        selection: list[str],
-                        return_series: pd.DataFrame,
-                        end_date: str,
-                        rescale: bool = True) -> dict[str, float]:
-
-        if not hasattr(self, '_init_weights'):
-            if self.rebalancing_date is not None and self.weights is not None:
-                w_init = dict.fromkeys(selection, 0)
-                w_float = self.float_weights(return_series=return_series,
-                                             end_date=end_date,
-                                             rescale=rescale)
-                w_floated = w_float.iloc[-1]
-
-                w_init.update({key: w_floated[key] for key in w_init.keys() & w_floated.keys()})
-                self._init_weights = w_init
-            else:
-                self._init_weights = None  # {key: 0 for key in selection}
-
-        return self._init_weights
-
     def turnover(self, portfolio: "Portfolio", return_series: pd.DataFrame, rescale=True):
         if portfolio.rebalancing_date and portfolio.rebalancing_date < self.rebalancing_date:
             w_init_floated = portfolio.float_weights(return_series, self.rebalancing_date, rescale).iloc[-1]
@@ -148,6 +125,17 @@ class Strategy:
     def get_weights(self, date: str) -> dict[str, float]:
         portfolio = self.get_portfolio(date)
         return portfolio.weights
+
+    def get_prev_portfolio(self, date: str) -> Portfolio:
+        idx = get_lower_bound_index(date, self._rebalancing_dates)
+        if idx >= 1 and self._rebalancing_dates[idx] == date:
+            return self._portfolios[idx-1]
+        elif idx >= 0 and self._rebalancing_dates[idx] != date:
+            return self._portfolios[idx]
+        elif idx == 0:
+            return Portfolio.empty()
+        else:
+            raise ValueError(f'No portfolio found before {date}')
 
     def __repr__(self):
         return f'Strategy(portfolios={self._portfolios})'

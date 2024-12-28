@@ -64,6 +64,7 @@ class Optimization(ABC):
         self.constraints = Constraints() if constraints is None else constraints
         self.model = None
         self.results = None
+        self.x0 = None
 
     @abstractmethod
     def set_objective(self, optimization_data: OptimizationData) -> None:

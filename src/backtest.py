@@ -133,19 +133,19 @@ class BacktestService():
             item_builder(self, rebdate)
         return None
 
-    def build_optimization(self, rebdate: str) -> None:
+    def build_optimization(self, rebdate: str, init_weight: dict) -> None:
 
         # Initialize the optimization constraints
         self.optimization.constraints = Constraints(selection = self.selection.selected)
-
+        self.optimization.x0 = init_weight
         # Loop over the optimization_item_builders items
         for item_builder in self.optimization_item_builders.values():
             item_builder(self, rebdate)
         return None
 
-    def prepare_rebalancing(self, rebalancing_date: str) -> None:
-        self.build_selection(rebdate = rebalancing_date)
-        self.build_optimization(rebdate = rebalancing_date)
+    def prepare_rebalancing(self, rebalancing_date: str, init_weight: dict) -> None:
+        self.build_selection(rebalancing_date)
+        self.build_optimization(rebalancing_date, init_weight = init_weight)
         return None
 
 
@@ -187,7 +187,8 @@ class Backtest:
                   rebalancing_date: str) -> None:
 
         # Prepare the rebalancing, i.e., the optimization problem
-        bs.prepare_rebalancing(rebalancing_date = rebalancing_date)
+        prev_weight = self.strategy.portfolios[-1].weights if self.strategy.portfolios else {}
+        bs.prepare_rebalancing(rebalancing_date = rebalancing_date, init_weight = prev_weight)
 
         # Solve the optimization problem
         try:
